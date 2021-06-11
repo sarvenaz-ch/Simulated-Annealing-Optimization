@@ -182,7 +182,7 @@ class FurniturePlacement():
                     if bedPlacement == 'h' or bedPlacement == 'f' :
                         self.conf, self.length, self.width, self.support, self.name, self.wallPoint = bed_placement(objects_code, object_library, orientation, mu, sigma, bedPlacement, room)
                     else: 
-                        print('algorithm decides if it is a headwall or footwall room')
+#                        print('algorithm decides if it is a headwall or footwall room')
                         self.conf, self.length, self.width, self.support, self.name, self.wallPoint = object_placement_againstWall(objects_code, object_library, room, orientation, mu, sigma)
                 else:
                     self.conf, self.length, self.width, self.support, self.name, self.wallPoint = object_placement_againstWall(objects_code, object_library, room, orientation, mu, sigma)

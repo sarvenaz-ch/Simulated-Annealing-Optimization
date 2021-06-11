@@ -413,22 +413,12 @@ def object_placement_againstWall(object_code, object_library, room, orientation,
   
   return conf, length, width, support, name, sampledPoint
 
-############################################################################################
-############################################################################################
 
 def bed_placement(object_code, object_library, orientation, mu, sigma, bedPlacement, room):
     length, width = object_dimension(object_code[0], object_library)
     support = object_supportLevel(object_code[0], object_library)
     name = object_name(object_code, object_library)
-    #--------------------------------
-#    headWalls = room.walls[2:]; #print('- Headwall configuration list of walls:', headWalls)
-#    footWalls = room.walls[0:2];# print('- Footdwall configuration list of walls:', footWalls)
-#    wallList = headWalls if bedPlacement == 'h' else footWalls 
-#    wallLenList = []
-#    for wall in wallList:
-#      wallLenList.append(math.sqrt((wall[0][0]-wall[1][0])**2+(wall[0][1]-wall[1][1])**2))   # length of each wall
-#    unwrapLen = sum(wallLenList) # overall length of the room
-    #------------------------------
+
     wallLenList, unwrapLen = unwrap_wall(room)
     
     headWall_samplingRange = np.linspace(4.27+5.79, unwrapLen, int((unwrapLen-4.27-5.79)*10)) # possible sampling numbers for placing an object
@@ -439,17 +429,13 @@ def bed_placement(object_code, object_library, orientation, mu, sigma, bedPlacem
       sampledPoint = random.choice(samplingRange)
     else:
       sampledPoint = np.random.normal(loc = mu, scale = sigma)# sample an y for the center of the object in the room
-    print('The chosen point is:', sampledPoint) 
+#    print('The chosen point is:', sampledPoint) 
     
     wallIndex, wallLenSum = wrap_wall(sampledPoint, wallLenList)
     confWall = against_wall_configuration(room, wallIndex, wallLenSum, sampledPoint)
     conf = against_wall_room_conf(confWall, length)
     
     return conf, length, width, support, name, sampledPoint
-
-############################################################################################
-############################################################################################
-
 
 def door_placement(door_code, object_library, room, otherRoom, doorMu, doorSigma):
   ''' This function reurns variables used to place the doors'''
