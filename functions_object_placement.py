@@ -178,6 +178,38 @@ def light_position(room, lightMu, lightSigma):
   
 # --------------------  FUNCTIONS SPECIFIC TO AGAINST THE WALL ----------------------------------------
 
+def headWall_footWall_configuration(room, wallIndex, wallLenSum, sampledPoint):
+  ''' This function finds the configuration (x,y and theta) of the objects that is going to be placed against a wall
+  :room: The room that the object is going to be placed in
+  :sampledPoint: the point that is sampled on the unwrapped wall in function unwrapp_sampling()
+  : wallIndex: the index of the wall that the sampledPoint corresponds to
+  :wallLenSum: fibunacci style sum of the length of the wall in order of their indecis
+  '''
+  chosenWall = room.walls[wallIndex]  # Find the coordinate of the wall the point is chosen on
+  # the start and end cooridnates of the chosen wall
+  wall_x1 = chosenWall[0][0]; wall_y1 = chosenWall[0][1];
+  wall_x2 = chosenWall[1][0]; wall_y2 = chosenWall[1][1];
+  chosenWallLen = math.sqrt((wall_x2-wall_x1)**2+(wall_y1-wall_y2)**2) # length of the chosen wall
+  '''Finding the length of the sampled point on the corresponding wall'''
+  if wallIndex == 0:  # if the point is sampled on the first wall
+    pointLen = sampledPoint # the distance of the sampled point from the begining point of the wall
+  else: 
+    pointLen = sampledPoint - wallLenSum[wallIndex-1]
+#  print('sample point is :', sampledPoint, 'and the length on the corresponding wall is:',pointLen)
+  ''' Configuration of the chosen point in the room space (unwrapped wall)'''
+  # Position
+  conf_x = (pointLen*wall_x2+(chosenWallLen-pointLen)*wall_x1)/(chosenWallLen)
+  conf_y = (pointLen*wall_y2+(chosenWallLen-pointLen)*wall_y1)/(chosenWallLen)
+  
+#  # orientation
+#  Y = wall_y1 - wall_y2
+#  X = wall_x1 - wall_x2
+  Y = wall_y2 - wall_y1
+  X = wall_x2 - wall_x1
+  theta = round(degrees(atan2(Y, X)))
+#  print('x is', conf_x, 'and y is:', conf_y, 'and theta is:', theta)
+  return([conf_x, conf_y, theta])
+
 
 def against_wall_configuration(room, wallIndex, wallLenSum, sampledPoint):
   ''' This function finds the configuration (x,y and theta) of the objects that is going to be placed against a wall
@@ -380,6 +412,44 @@ def object_placement_againstWall(object_code, object_library, room, orientation,
 #  conf = against_wall_room_conf(confWall, width)
   
   return conf, length, width, support, name, sampledPoint
+
+############################################################################################
+############################################################################################
+
+def bed_placement(object_code, object_library, orientation, mu, sigma, bedPlacement, room):
+    length, width = object_dimension(object_code[0], object_library)
+    support = object_supportLevel(object_code[0], object_library)
+    name = object_name(object_code, object_library)
+    #--------------------------------
+#    headWalls = room.walls[2:]; #print('- Headwall configuration list of walls:', headWalls)
+#    footWalls = room.walls[0:2];# print('- Footdwall configuration list of walls:', footWalls)
+#    wallList = headWalls if bedPlacement == 'h' else footWalls 
+#    wallLenList = []
+#    for wall in wallList:
+#      wallLenList.append(math.sqrt((wall[0][0]-wall[1][0])**2+(wall[0][1]-wall[1][1])**2))   # length of each wall
+#    unwrapLen = sum(wallLenList) # overall length of the room
+    #------------------------------
+    wallLenList, unwrapLen = unwrap_wall(room)
+    
+    headWall_samplingRange = np.linspace(4.27+5.79, unwrapLen, int((unwrapLen-4.27-5.79)*10)) # possible sampling numbers for placing an object
+    footWall_samplingRange = np.linspace(0, 4.27+5.79, int((4.27+5.79)*10)) # possible sampling numbers for placing an object
+    samplingRange = headWall_samplingRange if bedPlacement == 'h' else footWall_samplingRange
+
+    if mu ==[]:
+      sampledPoint = random.choice(samplingRange)
+    else:
+      sampledPoint = np.random.normal(loc = mu, scale = sigma)# sample an y for the center of the object in the room
+    print('The chosen point is:', sampledPoint) 
+    
+    wallIndex, wallLenSum = wrap_wall(sampledPoint, wallLenList)
+    confWall = against_wall_configuration(room, wallIndex, wallLenSum, sampledPoint)
+    conf = against_wall_room_conf(confWall, length)
+    
+    return conf, length, width, support, name, sampledPoint
+
+############################################################################################
+############################################################################################
+
 
 def door_placement(door_code, object_library, room, otherRoom, doorMu, doorSigma):
   ''' This function reurns variables used to place the doors'''

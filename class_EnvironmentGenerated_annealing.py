@@ -11,7 +11,8 @@ import time
 from math import cos, sin, radians, atan2, degrees
 from shapely.geometry import Polygon, Point
 from shapely.ops import cascaded_union
-from functions_object_placement import door_placement, object_placement, object_placement_againstWall, light_placement, room_surface_initialization
+from functions_object_placement import door_placement, object_placement, bed_placement
+from functions_object_placement import object_placement_againstWall, light_placement, room_surface_initialization, object_name
 from functions_collision_detection import rectangle_vertices, door_polygon, polygon_with_clearance, plot_polygon
 from functions_collision_detection import collision_detection, door_room_check, door_obj_collision_detection
 
@@ -20,7 +21,8 @@ from functions_collision_detection import collision_detection, door_room_check, 
 #############################################################################
 class Environment_Generated():
     ''' This class generates an environment with doors, lights and furniture randomly placed in two rooms, bedroom and bathroom'''
-    def __init__(self, mainRoomCodes, bathRoomCodes, furnMainStat, furnBathStat, lightMainStat, lightBathStat, doorMainStat, doorBathStat, numOfRows, numOfColumns):
+    def __init__(self, mainRoomCodes, bathRoomCodes, furnMainStat, furnBathStat, lightMainStat, lightBathStat,
+                 doorMainStat, doorBathStat, numOfRows, numOfColumns, bedPlacement = 0):
         self.unit_size_m = 0.20 # Grid size in cm (X,Y).
         self.numOfRows = numOfRows # Number of grids in a Y direction.
         self.numOfCols = numOfColumns # Number of grids in a X direction.
@@ -94,7 +96,7 @@ class Environment_Generated():
         mainDoorList = door_collision(mainDoorsCodeArray, mainRoom, bathRoom, mainDoorMu, mainDoorSigma)
         bathDoorList = door_collision(bathDoorsCodeArray, bathRoom, mainRoom, bathDoorMu, bathDoorSigma)
         
-        mainFurnitureList = multiple_object_collision_detection(mainFurnitureCodeArray, mainDoorList+bathDoorList, mainRoom, mainFurnMu, mainFurnSigma)
+        mainFurnitureList = multiple_object_collision_detection(mainFurnitureCodeArray, mainDoorList+bathDoorList, mainRoom, mainFurnMu, mainFurnSigma, bedPlacement)
         bathFurnitureList = multiple_object_collision_detection(bathFurnitureCodeArray, bathDoorList+mainDoorList, bathRoom, bathFurnMu, bathFurnSigma)
              
         self.doorListDict = {"main":mainDoorList, "bath":bathDoorList}
@@ -161,7 +163,7 @@ class Environment_Generated():
         
 class FurniturePlacement():
     
-    def __init__(self, objects_code, room, mu, sigma):
+    def __init__(self, objects_code, room, mu, sigma, bedPlacement = 0):
         library_file_name = os.path.join(os.getcwd(), 'Object_Library.csv') # The object library file address.
         object_library = pd.read_csv(library_file_name,) # Reading the object library file
         del library_file_name
@@ -174,9 +176,16 @@ class FurniturePlacement():
         againstWall = obj_df.iloc[0]['Against Wall']
         clearance = obj_df.iloc[0]['Clearance']
         inside = False
-        while inside == False:
+        while inside == False:          
             if againstWall == True:
-              self.conf, self.length, self.width, self.support, self.name, self.wallPoint = object_placement_againstWall(objects_code, object_library, room, orientation, mu, sigma)
+                if object_name(objects_code, object_library) == 'Bed':
+                    if bedPlacement == 'h' or bedPlacement == 'f' :
+                        self.conf, self.length, self.width, self.support, self.name, self.wallPoint = bed_placement(objects_code, object_library, orientation, mu, sigma, bedPlacement, room)
+                    else: 
+                        print('algorithm decides if it is a headwall or footwall room')
+                        self.conf, self.length, self.width, self.support, self.name, self.wallPoint = object_placement_againstWall(objects_code, object_library, room, orientation, mu, sigma)
+                else:
+                    self.conf, self.length, self.width, self.support, self.name, self.wallPoint = object_placement_againstWall(objects_code, object_library, room, orientation, mu, sigma)
 #              print('wallPoint:', self.wallPoint)
 #              print("Against the wall is detected for object", self.name)  
             else: 
@@ -283,7 +292,7 @@ def door_collision(door_code_array, room, otherRoom, doorMu, doorSigma):
                 
     return door_list
 
-def multiple_object_collision_detection(objects_code_array, door_list, room, mus, sigmas):
+def multiple_object_collision_detection(objects_code_array, door_list, room, mus, sigmas, bedPlacement = 0):
     '''
     This function checks the collision between multiple objects that have been sent 
     to this function as a list of objects
@@ -304,7 +313,7 @@ def multiple_object_collision_detection(objects_code_array, door_list, room, mus
             sigma = sigmas[i]
 #        print('\n and sigma is: \n, ', sigma)
         i +=1
-        obj_list.append(FurniturePlacement([obj_code], room, mu, sigma))    # list of the objects in the room
+        obj_list.append(FurniturePlacement([obj_code], room, mu, sigma, bedPlacement))    # list of the objects in the room
         
         restart = True
         timeOut = 5
@@ -316,7 +325,7 @@ def multiple_object_collision_detection(objects_code_array, door_list, room, mus
 #                print("checking collision between", obj.name, "and ", obj_list[-1].name)
                 if collision_obj == True:  # If the new object is colliding with any of the existing objects, recreate the latest object and assign new configuration to it
 #                    print("COLLISION detected between", obj.name, " and", obj_list[-1].name )
-                    obj_list[-1] = FurniturePlacement([obj_code], room, mu, sigma)
+                    obj_list[-1] = FurniturePlacement([obj_code], room, mu, sigma, bedPlacement)
                     restart = True
                 if time.time() > timeStart + timeOut:
                     print('Time out! Unable to set the room. Recreating room', room.name)
@@ -326,7 +335,7 @@ def multiple_object_collision_detection(objects_code_array, door_list, room, mus
                 collision_door = door_obj_collision_detection(door, obj_list[-1])
 #                print("checking collision between door", door.code, "and", obj_list[-1].name)
                 if collision_door == True:  # If the new object is colliding with any of the existing objects, recreate the latest object and assign new configuration to it
-                    obj_list[-1] = FurniturePlacement([obj_code], room, mu, sigma)
+                    obj_list[-1] = FurniturePlacement([obj_code], room, mu, sigma, bedPlacement)
 #                    print("COLLISION detected between door", door.code, " and", obj_list[-1].name)
                     restart = True
                 if time.time() > timeStart + timeOut:
