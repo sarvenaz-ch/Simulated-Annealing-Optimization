@@ -32,8 +32,9 @@ class Dual_Annealing():
     tInit: initial temperture
     tEnd: final temperture
     '''
-    def __init__(self, numCyc, numTrial, pInit, pEnd, tInit, tEnd, mainRoom, bathRoom, intention_set, maxNumTraj, bedPlacement = 0):
-      
+    def __init__(self, numCyc, numTrial, pInit, pEnd, tInit, tEnd, mainRoom, bathRoom, intention_set, maxNumTraj, 
+                 bedPlacement, mainDoorPlacement):
+
         self.cycleTime = [] # keeps track of the time of each cycle
         
         # -------------------------- ROOM GENERATION PARAMETERS -----------------------------
@@ -45,7 +46,11 @@ class Dual_Annealing():
         self.numOfRows = 22 # Number of grids in the room in Y direction.
         self.numOfCols = 29 # Number of grids in the room in X direction.
         self.env = [] # Initializing the environment
-        self.env.append(Environment_Generated(mainRoom, bathRoom, furnMainStat, furnBathStat, lightMainStat, lightBathStat, doorMainStat, doorBathStat, self.numOfRows, self.numOfCols, bedPlacement))
+
+        self.env.append(Environment_Generated(mainRoom, bathRoom, furnMainStat, furnBathStat, lightMainStat, 
+                                              lightBathStat, doorMainStat, doorBathStat,
+                                              self.numOfRows, self.numOfCols, bedPlacement = bedPlacement,
+                                              mainDoorPlacement = mainDoorPlacement))
         self.firstEnv = self.env[-1]
         
         '''PLOTTING THE ROOM'''
@@ -156,7 +161,9 @@ class Dual_Annealing():
               #-------------------------------------------------------------------------------
 
               print('Generating room',trial, 'in cycle:', cycle , '...')    
-              self.env.append(Environment_Generated(mainRoom, bathRoom, furnMainStat, furnBathStat, lightMainStat, lightBathStat, doorMainStat, doorBathStat, self.numOfRows, self.numOfCols, bedPlacement))
+              self.env.append(Environment_Generated(mainRoom, bathRoom, furnMainStat, furnBathStat, lightMainStat, lightBathStat,
+                                                    doorMainStat, doorBathStat, self.numOfRows, self.numOfCols,
+                                                    bedPlacement = bedPlacement, mainDoorPlacement = mainDoorPlacement))
               '''PLOTTING THE ROOM'''
               plt.show()
               for room in self.env[-1].roomList:

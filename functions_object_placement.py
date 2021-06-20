@@ -46,7 +46,8 @@ def object_configuration(object_code, room_x, room_y, orientation, mu, sigma):
 #        print('obj conf from fucntions_obj_placement: ', obj_conf)
     return(obj_conf)
 
-def door_configuration(room, otherRoom, muDoor, sigmaDoor):
+def door_configuration(room, otherRoom, muDoor, sigmaDoor, mainDoorPlacement):
+#    print('mainDoorPlacement:' , mainDoorPlacement)
     '''
     THIS FUNCTION FINDS THE WALLS THAT THE DOOR GOES ON (BATHROOM WALLS FOR THE
     BATHROOM DOOR AND THE REST OF THE MAIN ROOM WALLS FOR THE MAIN WALL), UNWRAP
@@ -68,7 +69,6 @@ def door_configuration(room, otherRoom, muDoor, sigmaDoor):
 #    print('unwrapLen:', unwrapLen,'Mu door:', muDoor)
     
     #------------------------- FOR GENERAL PURPOSES---------------
-    general = True
     sampledPoint = unwrap_sampling(unwrapLen, muDoor, sigmaDoor) # sample a point on the wall
     if muDoor != []:
       sampledPoint = sampledPoint[0]
@@ -79,51 +79,52 @@ def door_configuration(room, otherRoom, muDoor, sigmaDoor):
       if i == 0:
         wallSum.append(wallString.geoms[0].length) # the first wall
       else:
-        wallSum.append(wallString.geoms[i].length+wallSum[i-1])
+        wallSum.append(wallString.geoms[i].length+wallSum[i-1])        
+#    print('- The main door is sampled randomly')
+    #----------------------------------------
+    
     
     #------------------------- FOR OUTBOARD ROOM ---------------
-#    outboard = False
-#    if room.name == 'main_room': 
-#      outboard = True # if you dont want to have an inboard room, change this to false
-#    if outboard == True: 
-#      samplingRange = np.linspace(0.5, 10, 20) # possible sampling numbers for placing an object
-#      wallString = MultiLineString([((0, 0), (4.27,0)), ((4.27,0), (4.27, 5.79))])
-#      if muDoor ==[]:
-#        sampledPoint = random.choice(samplingRange)
-#      else:
-#  #      print('mu:',muDoor, 'sigma:', sigmaDoor)
-#        sampledPoint = truncnorm((0.5 - muDoor[0]) / sigmaDoor[0], (10 - muDoor[0]) / sigmaDoor[0], loc=muDoor[0], scale=sigmaDoor[0])
-#        sampledPoint = sampledPoint.rvs()
-#  #      sampledPoint = sampledPoint[0]      
-#  #    sampledPoint = 2
-#      
-#      wallSum = []
-#      lineSum = 0
-#      for line in wallString:
-#        lineSum = lineSum+line.length
-#        wallSum.append(lineSum) # the first wall
-  #    print('INBOARD sampled point:', sampledPoint)
-    #------------------------- FOR INBOARD ROOM ---------------
-    inboard = False
-    if room.name == 'main_room':
-      inboard = True
-    if inboard == True:
-      samplingRange = np.linspace(0.5, 6, 15) # possible sampling numbers for placing an object
-      wallString = MultiLineString([((4.27, 5.79), (1.93, 5.79)), ((0,3.7), (0,0))])
-      if muDoor ==[]:
-        sampledPoint = random.choice(samplingRange)
-      else:
-        sampledPoint = truncnorm((0.5 - muDoor[0]) / sigmaDoor[0], (6 - muDoor[0]) / sigmaDoor[0], loc=muDoor[0], scale=sigmaDoor[0])
-        sampledPoint = sampledPoint.rvs()
+    if mainDoorPlacement == 'o':
+      if room.name == 'main_room': 
+        samplingRange = np.linspace(0.5, 10, 20) # possible sampling numbers for placing an object
+        wallString = MultiLineString([((0, 0), (4.27,0)), ((4.27,0), (4.27, 5.79))])
+        if muDoor ==[]:
+          sampledPoint = random.choice(samplingRange)
+        else:
+      #      print('mu:',muDoor, 'sigma:', sigmaDoor)
+          sampledPoint = truncnorm((0.5 - muDoor[0]) / sigmaDoor[0], (10 - muDoor[0]) / sigmaDoor[0], loc=muDoor[0], scale=sigmaDoor[0])
+          sampledPoint = sampledPoint.rvs()
+      #      sampledPoint = sampledPoint[0]      
+      #    sampledPoint = 2
         
-      wallSum = []
-      lineSum = 0
-      for line in wallString:
-        lineSum = lineSum+line.length
-        wallSum.append(lineSum) # the first wall
-      
-#    
-    #----------------------------------------
+        wallSum = []
+        lineSum = 0
+        for line in wallString:
+          lineSum = lineSum+line.length
+          wallSum.append(lineSum) # the first wall
+#      print('- OUTBOARD sampled point:', sampledPoint)
+    #------------------------- FOR INBOARD ROOM ---------------
+    elif mainDoorPlacement == 'i':
+      inboard = False
+      if room.name == 'main_room':
+        inboard = True
+      if inboard == True:
+        samplingRange = np.linspace(0.5, 6, 15) # possible sampling numbers for placing an object
+        wallString = MultiLineString([((4.27, 5.79), (1.93, 5.79)), ((0,3.7), (0,0))])
+        if muDoor ==[]:
+          sampledPoint = random.choice(samplingRange)
+        else:
+          sampledPoint = truncnorm((0.5 - muDoor[0]) / sigmaDoor[0], (6 - muDoor[0]) / sigmaDoor[0], loc=muDoor[0], scale=sigmaDoor[0])
+          sampledPoint = sampledPoint.rvs()
+          
+        wallSum = []
+        lineSum = 0
+        for line in wallString:
+          lineSum = lineSum+line.length
+          wallSum.append(lineSum) # the first wall
+#      print('- INBOARD ROOM')
+    
     ''' Find on which wall the point goes on'''
     for i in range(len(wallSum)):
 #      print('i:', i, 'wallSum[i]', wallSum[i])
@@ -437,9 +438,9 @@ def bed_placement(object_code, object_library, orientation, mu, sigma, bedPlacem
     
     return conf, length, width, support, name, sampledPoint
 
-def door_placement(door_code, object_library, room, otherRoom, doorMu, doorSigma):
+def door_placement(door_code, object_library, room, otherRoom, doorMu, doorSigma, mainDoorPlacement):
   ''' This function reurns variables used to place the doors'''
-  sampledPoint, config = door_configuration(room, otherRoom, doorMu, doorSigma)
+  sampledPoint, config = door_configuration(room, otherRoom, doorMu, doorSigma, mainDoorPlacement)
   length, width = object_dimension(door_code[0], object_library)
   support = object_supportLevel(door_code[0], object_library)
   return config, length, width, support, sampledPoint

@@ -22,7 +22,8 @@ from functions_collision_detection import collision_detection, door_room_check, 
 class Environment_Generated():
     ''' This class generates an environment with doors, lights and furniture randomly placed in two rooms, bedroom and bathroom'''
     def __init__(self, mainRoomCodes, bathRoomCodes, furnMainStat, furnBathStat, lightMainStat, lightBathStat,
-                 doorMainStat, doorBathStat, numOfRows, numOfColumns, bedPlacement = 0):
+                 doorMainStat, doorBathStat, numOfRows, numOfColumns, mainDoorPlacement, bedPlacement = 0):
+#        print('mainDoorPlacement:' , mainDoorPlacement)
         self.unit_size_m = 0.20 # Grid size in cm (X,Y).
         self.numOfRows = numOfRows # Number of grids in a Y direction.
         self.numOfCols = numOfColumns # Number of grids in a X direction.
@@ -93,8 +94,8 @@ class Environment_Generated():
         mainLightList = light_installation(mainLightCodeArray, mainRoom, mainLightMu, mainLightSigma)
         bathLightList = light_installation(bathLightCodeArray, bathRoom, bathLightMu, bathLightSigma)
         
-        mainDoorList = door_collision(mainDoorsCodeArray, mainRoom, bathRoom, mainDoorMu, mainDoorSigma)
-        bathDoorList = door_collision(bathDoorsCodeArray, bathRoom, mainRoom, bathDoorMu, bathDoorSigma)
+        mainDoorList = door_collision(mainDoorsCodeArray, mainRoom, bathRoom, mainDoorMu, mainDoorSigma, mainDoorPlacement)
+        bathDoorList = door_collision(bathDoorsCodeArray, bathRoom, mainRoom, bathDoorMu, bathDoorSigma, mainDoorPlacement)
         
         mainFurnitureList = multiple_object_collision_detection(mainFurnitureCodeArray, mainDoorList+bathDoorList, mainRoom, mainFurnMu, mainFurnSigma, bedPlacement)
         bathFurnitureList = multiple_object_collision_detection(bathFurnitureCodeArray, bathDoorList+mainDoorList, bathRoom, bathFurnMu, bathFurnSigma)
@@ -202,7 +203,7 @@ class FurniturePlacement():
 
 class DoorPlacement():
     
-    def __init__(self, door_code, room, otherRoom, doorMu, doorSigma):
+    def __init__(self, door_code, room, otherRoom, doorMu, doorSigma, mainDoorPlacement):
         library_file_name = os.path.join(os.getcwd(), 'Object_Library.csv') # The object library file address.
         object_library = pd.read_csv(library_file_name,) # Reading the object library file
         del library_file_name
@@ -210,7 +211,7 @@ class DoorPlacement():
         self.wallPoint = []
         outside = True
         while outside == True:  
-            self.conf, self.length, self.width, self.support, self.wallPoint = door_placement(door_code, object_library, room, otherRoom, doorMu, doorSigma)
+            self.conf, self.length, self.width, self.support, self.wallPoint = door_placement(door_code, object_library, room, otherRoom, doorMu, doorSigma, mainDoorPlacement)
             self.room = room.name
             _, _, _, _, self.polygon = door_polygon(self.conf, self.length, self.width)
             _, _, _, _, obj = door_polygon(self.conf, self.length, self.width)
@@ -267,7 +268,7 @@ def finding_walls(room):
         wall_arrayType.append(wall_array)
     return num_walls, wall_list, wall_arrayType
 
-def door_collision(door_code_array, room, otherRoom, doorMu, doorSigma):
+def door_collision(door_code_array, room, otherRoom, doorMu, doorSigma, mainDoorPlacement):
     '''
     This function checks the collision between multiple objects that have been sent 
     to this function as a list of objects
@@ -278,7 +279,7 @@ def door_collision(door_code_array, room, otherRoom, doorMu, doorSigma):
     #creating a list of objects
     door_list = []
     for door_code in door_code_array:
-        door_list.append(DoorPlacement([door_code], room, otherRoom, doorMu, doorSigma))    # list of the objects in the room
+        door_list.append(DoorPlacement([door_code], room, otherRoom, doorMu, doorSigma, mainDoorPlacement))    # list of the objects in the room
         restart = True
         while restart == True:  # Making sure it checks the collision between all objects even after resampling
             restart = False
@@ -287,7 +288,7 @@ def door_collision(door_code_array, room, otherRoom, doorMu, doorSigma):
     #            print("checking collision between ", obj.code, "and, ", obj_list[-1].code)
                 if collision_bool == True:  # If the new object is colliding with any of the existing objects, recreate the latest object and assign new configuration to it
     #                print("Collision detected between objects ", obj.code, " and ", obj_list[-1].code )
-                    door_list[-1] = DoorPlacement([door_code], room, otherRoom, doorMu, doorSigma)
+                    door_list[-1] = DoorPlacement([door_code], room, otherRoom, doorMu, doorSigma, mainDoorPlacement)
                     restart = True
                 
     return door_list
